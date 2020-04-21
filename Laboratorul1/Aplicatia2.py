@@ -9,7 +9,7 @@ class TextParser:
         self.directories =[self.dirPath]
         self.words = collections.OrderedDict()
         
-    def creeaza_index_direct(self,file_path):
+    def text_parse(self,file_path):
         f=open(file_path, 'r')
         self.words[file_path]={}
         letter=f.read(1).lower()
@@ -39,7 +39,7 @@ class TextParser:
                 elif os.path.isfile(os.path.join(dir,f)):
 
                     key=os.path.join(dir,f)
-                    self.creeaza_index_direct(key)
+                    self.text_parse(key)
         with open('output_Aplicatia2.json', 'w') as scrieJson1:
             json.dump(self.words, scrieJson1,indent=10)
       
