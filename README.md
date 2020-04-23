@@ -16,4 +16,4 @@
 	-Aplicatia realizeaza functia de cautare booleana cu operatiile AND,OR si NOT;
 
 **Documentatie proiect:**\
-	https://we.tl/t-rdtTPEgwsx
+https://we.tl/t-j5XzdrmHnu
