@@ -15,4 +15,5 @@
 **Laboratorul 4:**\
 	-Aplicatia realizeaza functia de cautare booleana cu operatiile AND,OR si NOT;
 
-	
+**Documentatie proiect:**\
+	https://we.tl/t-rdtTPEgwsx
