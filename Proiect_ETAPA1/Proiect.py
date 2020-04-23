@@ -23,6 +23,7 @@ stemmer = PorterStemmer()
 myclient = None
 mydb = None
 direct_index_mydb = None
+direct_index_wdb = None
 words_counter = {}
 number_of_files = 0
 tf = {}
@@ -170,11 +171,13 @@ def connect_to_db():
     global myclient
     global mydb
     global direct_index_mydb
+    global direct_index_wdb
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
     mydb = myclient["mydatabase"]
     for collection in mydb.list_collection_names():
         mydb[collection].drop()
-    direct_index_mydb = mydb["direct_index"]
+    direct_index_mydb = mydb["direct_index_path"]
+    direct_index_wdb = mydb["direct_index"]
     
 def tf_idf(): 
     for cuvant in indirect_index:
@@ -244,11 +247,11 @@ if __name__ == "__main__":
             final_direct_index()
             connect_to_db()
             print("-S-a facut conectarea la baza de date")
-            direct_index_coll.insert(paths_direct_index)
-            cursor = direct_index_coll.find()
-            for doc in cursor:
-                direct_index = dict(doc)
-                del direct_index['_id']
+            direct_index_mydb.insert(paths_direct_index)
+            direct_index_wdb.insert(words)
+            cursor = direct_index_mydb.find()
+            cursor2 = direct_index_wdb.find()
+
             print("--A fost adaugat in baza de date indexul direct")
         else:
             print("Introduceti o optiune valida")
