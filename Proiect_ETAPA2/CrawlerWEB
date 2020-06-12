@@ -1,0 +1,169 @@
+#imports
+from urllib.parse import urlparse,urljoin
+from bs4 import BeautifulSoup
+import datetime
+import os
+import time
+from clientDNS import Cache_DNS, DNSServer
+from clientHTTP import extract_html_page
+from my_queue import coada, Q, dictionar_robot
+import robots as rb
+
+time_a = None
+time_b = None
+domeniu_vechi = None
+my_var = 0
+adrese_domeniu = {}
+
+def crawler(start_time):
+    counter = 0
+    rob=0
+    global time_a, time_b, domeniu_vechi
+    for l in Q:
+        page = None
+
+        if coada[l]['explorat'] == True:
+            continue
+
+        domeniu = urlparse(l).netloc
+        url = urlparse(l).path
+        baselink = urlparse(l).scheme + '://' + domeniu
+        dstPath = 'output'
+        if not os.path.exists(dstPath):
+            os.makedirs(dstPath)
+        if not (os.path.isdir(os.path.join(dstPath, domeniu))):
+            os.mkdir(os.path.join(dstPath, domeniu))
+
+        if domeniu not in dictionar_robot:
+            robot = rb.get_robots(baselink)
+        else:
+            robot = dictionar_robot[domeniu]
+
+        if robot is not None:
+            if robot.can_fetch('RIWEB_CRAWLER', url):
+                rob += 1
+            else:
+                continue
+
+        if domeniu not in adrese_domeniu:
+            adrese_domeniu[domeniu] = {}
+
+        if adrese_domeniu[domeniu] == {}:
+            adrese_domeniu[domeniu] = Cache_DNS(domeniu,adrese_domeniu[domeniu])
+
+        if adrese_domeniu[domeniu] is None:
+            continue
+
+        ip_adress = adrese_domeniu[domeniu]['ip_address']
+
+        if ip_adress is not None or ip_adress != '':
+            time_b = datetime.datetime.now()
+            if time_a is None:
+                page = extract_html_page(url, domeniu, ip_adress, l)
+                domeniu_vechi = domeniu
+            elif (time_b - time_a).total_seconds() < 1 and domeniu_vechi == domeniu:
+                time.sleep(1)
+                page = extract_html_page(url, domeniu, ip_adress, l)
+                time_a = time_b
+            else:
+                page = extract_html_page(url, domeniu, ip_adress, l)
+                time_a = time_b
+                domeniu_vechi = domeniu
+
+        if page is not None:
+            getpage_soup = BeautifulSoup(page, 'html.parser')
+            metas = getpage_soup.find_all('meta')
+            page_flag = False
+            link_flag = False
+            for meta in metas:
+                if meta.get('name') == 'robots':
+                    if 'all' in meta.get('content') or 'index' in meta.get('content') :
+                        page_flag = True
+                    if 'all' in meta.get('content') or 'follow' in meta.get('content') :
+                        link_flag = True
+            if not any(meta.get('name') == 'robots' for meta in metas):
+                page_flag, link_flag = True, True
+            if page_flag == True:
+                path = domeniu + url
+                path = path.split('/')
+                current_path = os.path.join(os.getcwd(), dstPath)
+                for var in path[:-1]:
+                    if (os.path.isdir(os.path.join(current_path, var))):
+                        current_path = os.path.join(current_path, var)
+                    else:
+                        current_path = os.path.join(current_path, var)
+                        os.mkdir(current_path)
+                if path[-1] == '':
+                    nume_fisier = 'index.html'
+                else:
+                    nume_fisier = path[-1]
+                with open('{}\{}.html'.format(current_path,nume_fisier.split('.')[0]), 'wb') as file:
+                    file.write(page.encode('utf8'))
+            if link_flag == True:
+                a_tags = getpage_soup.find_all('a', href = True)
+                for a_tag in a_tags:
+                    link = a_tag['href']
+                    if bool(urlparse(link).netloc) == True:
+                        if link[:link.find(':')] == 'http':
+                            link = link.split('#')[0]
+                            if link not in coada.keys():
+                                if urlparse(link).netloc not in dictionar_robot:
+                                    robo = rb.get_robots(urlparse(link).scheme + '://' + urlparse(link).netloc)
+                                else:
+                                    robo = dictionar_robot[urlparse(link).netloc]
+
+                                if robo is not None:
+                                    if robo.can_fetch('RIWEB_CRAWLER', urlparse(link).path):
+                                        rob += 1
+                                    else:
+                                        continue
+
+                                path = urlparse(link).netloc + urlparse(link).path
+                                if path.split('/')[-1] == '':
+                                    if os.path.isfile(os.path.join(dstPath, path, 'index.html')):
+                                        continue
+                                else:
+                                    if os.path.isfile(os.path.join(dstPath, path)):
+                                        continue
+                                    coada[link] = {'retry': 0, 'explorat': False}
+                                    Q.append(link)
+
+                    else:
+                        link = urljoin(l, link)
+                        link = link.split('#')[0]
+                        port = urlparse(link).port
+                        if port is not None:
+                            link.replace(':{}'.format(port), '')
+                        if link not in coada.keys() and os:
+                            if urlparse(link).netloc not in dictionar_robot:
+                                robot = rb.getrobo(urlparse(link).scheme + '://' + urlparse(link).netloc)
+                            else:
+                                robot = dictionar_robot[urlparse(link).netloc]
+                            if robot is not None:
+                                if robot.can_fetch('RIWEB_CRAWLER', urlparse(link).path):
+                                    rob += 1
+                                else:
+                                    continue
+                            path = urlparse(link).netloc + urlparse(link).path
+                            if path.split('/')[-1] == '':
+                                if os.path.isfile(os.path.join('work_directory', path, 'index.html')):
+                                    continue
+                            else:
+                                if os.path.isfile(os.path.join('work_directory', path)):
+                                    continue
+                            coada[link] = {'retry': 0, 'explorat': False}
+                            Q.append(link)
+
+        timeb = datetime.datetime.now()
+        cycle = (timeb - start_time).seconds
+        if counter == 100:
+            print("Got: ", counter, " pages in ", cycle, "sec")
+            break
+        else:
+            counter += 1
+
+if __name__ == "__main__":
+    start_time = datetime.datetime.now()
+    print ('Start')
+    crawler(start_time)
+    print('Stop')
