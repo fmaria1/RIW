@@ -1,4 +1,3 @@
-
 import socket
 
 #initializations
@@ -19,32 +18,26 @@ client.send(request.encode())
 
 #functions
 
-def receive_data(socket):
-    buffer_size = 4096
-    data = b''
-    while True:
-        part = socket.recv(buffer_size)
-        print(len(part))
-        data += part
-        if  b'</html>' in part.lower() or len(part) == 0:
-            break
-    return data
-
 # 4 Preluarea raspunsului HTTP oferit de catre server
 def read():
-    CHUNK_SIZE = 32  # you can set it larger or smaller
+    CHUNK_SIZE = 16
     buffer = bytearray()
     buffer.extend(client.recv(CHUNK_SIZE))
-    firstline = buffer[:buffer.find(b'\n')]
     firstline = buffer.decode()
     data = b''
     #verificarea codului de stare (daca acesta este cod de eroare, se va deschide un fisier text în care se va
     # scrie cererea initiala si raspunsul  serverului);
     if '200 OK' in firstline:
-        data = receive_data(client)
-        data=data.decode()
+        buffer_size = 4096
+        data1 = b''
+        while True:
+            part = client.recv(buffer_size)
+            data1 += part
+            if b'</html>' in part.lower() or len(part) == 0:
+                break
+        data = data1
+        data = data.decode()
         data_lower = data.lower()
-        #print(data_lower.find('<!doctype'))
         if data_lower.find('<!doctype') > -1:
             data_to_store = data[data_lower.find('<!doctype'):data_lower.find('</html>') + 8]
         else:
@@ -55,11 +48,17 @@ def read():
             file.write(data_to_store)
     else:
         data = data + buffer
-        data +=receive_data(client)
+        buffer_size = 4096
+        data1 = b''
+        while True:
+            part = client.recv(buffer_size)
+            data1 += part
+            if b'</html>' in part.lower() or len(part) == 0:
+                break
+        data += data1
         with open('error_page.txt','w') as file:
             file.write(data.decode())
         pass
 
 if __name__ == "__main__":
     read()
-    #unde inchizi conexiunea?
