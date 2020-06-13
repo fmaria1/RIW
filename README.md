@@ -15,5 +15,17 @@
 **Laboratorul 4:**\
 	-Aplicatia realizeaza functia de cautare booleana cu operatiile AND,OR si NOT;
 
-**Documentatie proiect:**\
-https://we.tl/t-j5XzdrmHnu
+**Laboratorul 5:**\
+	-Aplicatie client DNS, utilizeaza protocol UDP, port 53;
+	
+**Laboratorul 6:**\
+	-Aplicatia client HTTP, versiunea 1.1;
+	
+**Laboratorul 7:**\
+	-Aplicatia WEB Crawler secvential;
+
+**Documentatie proiect ETAPA 1:**\
+https://we.tl/t-8Z1mPOLRWF
+
+**Documentatie proiect ETAPA 2:**\
+https://we.tl/t-sJPgCq8e9H
