@@ -1,5 +1,6 @@
 #imports
 from urllib.parse import urlparse,urljoin
+import urllib.robotparser
 from bs4 import BeautifulSoup
 import datetime
 import os
@@ -7,18 +8,31 @@ import time
 from clientDNS import Cache_DNS, DNSServer
 from clientHTTP import extract_html_page
 from my_queue import coada, Q, dictionar_robot
-import robots as rb
 
 time_a = None
 time_b = None
 domeniu_vechi = None
-my_var = 0
 adrese_domeniu = {}
+dstPath = 'output'
+
+def get_robots(baselink):
+    parser = urllib.robotparser.RobotFileParser()
+    domain = urlparse(baselink).netloc
+    parser.set_url(baselink + '/robots.txt')
+    try:
+        parser.read()
+        dictionar_robot[domain] = parser
+    except:
+            dictionar_robot[domain] = None
+            parser = None
+    return parser
+
 
 def crawler(start_time):
     counter = 0
     rob=0
     global time_a, time_b, domeniu_vechi
+
     for l in Q:
         page = None
 
@@ -28,14 +42,14 @@ def crawler(start_time):
         domeniu = urlparse(l).netloc
         url = urlparse(l).path
         baselink = urlparse(l).scheme + '://' + domeniu
-        dstPath = 'output'
+
         if not os.path.exists(dstPath):
             os.makedirs(dstPath)
         if not (os.path.isdir(os.path.join(dstPath, domeniu))):
             os.mkdir(os.path.join(dstPath, domeniu))
 
         if domeniu not in dictionar_robot:
-            robot = rb.get_robots(baselink)
+            robot = get_robots(baselink)
         else:
             robot = dictionar_robot[domeniu]
 
@@ -61,6 +75,7 @@ def crawler(start_time):
             if time_a is None:
                 page = extract_html_page(url, domeniu, ip_adress, l)
                 domeniu_vechi = domeniu
+                time_a = time_b
             elif (time_b - time_a).total_seconds() < 1 and domeniu_vechi == domeniu:
                 time.sleep(1)
                 page = extract_html_page(url, domeniu, ip_adress, l)
@@ -81,8 +96,10 @@ def crawler(start_time):
                         page_flag = True
                     if 'all' in meta.get('content') or 'follow' in meta.get('content') :
                         link_flag = True
+
             if not any(meta.get('name') == 'robots' for meta in metas):
                 page_flag, link_flag = True, True
+
             if page_flag == True:
                 path = domeniu + url
                 path = path.split('/')
@@ -108,12 +125,12 @@ def crawler(start_time):
                             link = link.split('#')[0]
                             if link not in coada.keys():
                                 if urlparse(link).netloc not in dictionar_robot:
-                                    robo = rb.get_robots(urlparse(link).scheme + '://' + urlparse(link).netloc)
+                                    robot = get_robots(urlparse(link).scheme + '://' + urlparse(link).netloc)
                                 else:
-                                    robo = dictionar_robot[urlparse(link).netloc]
+                                    robot = dictionar_robot[urlparse(link).netloc]
 
-                                if robo is not None:
-                                    if robo.can_fetch('RIWEB_CRAWLER', urlparse(link).path):
+                                if robot is not None:
+                                    if robot.can_fetch('RIWEB_CRAWLER', urlparse(link).path):
                                         rob += 1
                                     else:
                                         continue
@@ -136,7 +153,7 @@ def crawler(start_time):
                             link.replace(':{}'.format(port), '')
                         if link not in coada.keys() and os:
                             if urlparse(link).netloc not in dictionar_robot:
-                                robot = rb.getrobo(urlparse(link).scheme + '://' + urlparse(link).netloc)
+                                robot = get_robots(urlparse(link).scheme + '://' + urlparse(link).netloc)
                             else:
                                 robot = dictionar_robot[urlparse(link).netloc]
                             if robot is not None:
