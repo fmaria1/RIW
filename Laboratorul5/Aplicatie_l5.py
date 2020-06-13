@@ -1,17 +1,16 @@
 import socket
 import random
-import time
-import sys
+
+#creare socket
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 port=53
 server="81.180.223.1"
 to_send = (server,port)
 s.connect(to_send)
 adress = s.getsockname()[0]
-print(adress)
 s.close()
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+#2. se transmite mesajul astfel construit catre server-ul indicat, utilizând protocolul ˘ UDP, port 53;
 adress = socket.getaddrinfo("81.180.223.1",53)
 print(adress)
 #sys.exit(1)
@@ -29,13 +28,13 @@ for i in range(len(labels)):
         mesaj[idx] = ord(labels[i][j])
         idx += 1
 mesaj[idx] = 0
-mesaj[30]=mesaj[28] = 1
+mesaj[30] = mesaj[28] = 1
 mesaj_hex = []
 for elem in mesaj:
     mesaj_hex.append(hex(elem))
 packet = (mesaj, adress)
-print(s.sendto(mesaj, (to_send)))
-#time.sleep(3)
+
+# 3. se preia raspunsul oferit de server (într-un buffer pre-alocat de dimensiune maxima de 512 octeti);
 response = s.recv(512)
 hex_array = []
 for elem in response:
@@ -44,8 +43,5 @@ if int(hex_array[3],0) & 0x0F != 0:
     print('Eroare, codul erorii este: ',hex_array[3])
 for x in range(len(hex_array)):
     pass
-print(hex_array)
-print(mesaj_hex)
-#s.close()
 
 #fara punctul 4
